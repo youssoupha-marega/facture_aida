@@ -3,7 +3,7 @@ from fpdf import FPDF
 from datetime import date
 
 # Titre
-st.title("Générateur de Facture")
+st.title("Générateur de Facture - Youssoupha Marega")
 
 # Formulaire utilisateur
 with st.form("invoice_form"):
@@ -25,7 +25,7 @@ if submit:
     pdf.add_page()
     pdf.set_font("Arial", size=12)
 
-    pdf.cell(200, 10, txt="InvoiceKODKEE URBAN GETAWAY", ln=True, align="C")
+    pdf.cell(200, 10, txt="Youssoupha Marega", ln=True, align="C")
     pdf.ln(10)
     pdf.cell(100, 10, f"Invoice No: {invoice_no}")
     pdf.cell(100, 10, f"Date: {date_facture.strftime('%d/%m/%Y')}", ln=True)
