@@ -24,6 +24,10 @@ if submit:
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
+    
+    # 🔹 Ajouter une image (logo)
+    imaga_path = "image.png"  # chemin de ton image
+    pdf.image(imaga_path, x=10, y=8, w=40)  # x, y en mm — ajuste selon le rendu
 
     pdf.cell(200, 10, txt="Youssoupha Marega", ln=True, align="C")
     pdf.ln(10)
@@ -60,6 +64,8 @@ if submit:
     # Sauvegarde et affichage
     pdf_path = f"facture_{invoice_no}.pdf"
     pdf.output(pdf_path)
+    
+    imaga_path = "image.png"
 
     with open(pdf_path, "rb") as f:
         st.download_button("Télécharger la facture PDF", f, file_name=pdf_path)
