@@ -1,71 +1,81 @@
 import streamlit as st
-from fpdf import FPDF
 from datetime import date
+from src.utils import generate_pdf  # Ta fonction mise à jour avec taux_tva
 
-# Titre
-st.title("Générateur de Facture - Youssoupha Marega")
+st.title("🧾 Générateur de Facture - Youssoupha Marega")
 
-# Formulaire utilisateur
 with st.form("invoice_form"):
+    path_logo = "logo_aida_living.png"
+
+    nom_entreprise = st.text_input("Nom de l'entreprise", "Aïda Living - Appartements Meublés à Dakar")
     invoice_no = st.text_input("Numéro de facture", "3")
-    date_facture = st.date_input("Date de la facture", value=date.today())
-    nom_client = st.text_input("Nom du client", "Papa Issa Diop")
-    adresse_client = st.text_area("Adresse du client", "Immeuble Malick Gnaabaly #8")
-    telephone = st.text_input("Téléphone", "+221 77 247 46 21")
+    date_facture = st.date_input("Date", value=date.today())
+    terms = st.text_input("Conditions", "NET 0")
+    due_date = st.date_input("Date d'échéance", value=date.today())
+
+    bill_to = st.text_input("Facturé à", "Youssoupha Marega")
+    nom_immeuble = st.text_input("Nom de l'immeuble", "Immeuble Malick Gnaabaly #8")
+    telephone_immeuble = st.text_input("Téléphone", "+221 77 247 46 21")
+
     description = st.text_input("Description", "Court Séjour")
-    quantite = st.number_input("Quantité", min_value=1, value=2)
-    taux = st.number_input("Tarif (F CFA)", min_value=0, value=45000)
-    submit = st.form_submit_button("Générer la facture")
+    quantity = st.text_input("Quantité", "2")
+    rate = st.text_input("Prix unitaire (FCFA)", "15 000 FCFA")
+    paid = st.text_input("Montant payé (FCFA)", "20 000 FCFA")
+    taux_tva_str = st.text_input("Taux de TVA (%)", "0")
 
-# Génération PDF
-if submit:
-    montant = quantite * taux
+    submitted = st.form_submit_button("📄 Générer la facture")
 
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    
-    # 🔹 Ajouter une image (logo)
-    imaga_path = "image.png"  # chemin de ton image
-    pdf.image(imaga_path, x=10, y=8, w=40)  # x, y en mm — ajuste selon le rendu
+if submitted:
+    try:
+        # Nettoyage et parsing
+        quantity_int = int(quantity)
+        rate_int = int(rate.replace("FCFA", "").replace(" ", ""))
+        paid_int = int(paid.replace("FCFA", "").replace(" ", ""))
+        taux_tva = float(taux_tva_str.replace("%", "").replace(",", ".")) / 100
 
-    pdf.cell(200, 10, txt="Youssoupha Marega", ln=True, align="C")
-    pdf.ln(10)
-    pdf.cell(100, 10, f"Invoice No: {invoice_no}")
-    pdf.cell(100, 10, f"Date: {date_facture.strftime('%d/%m/%Y')}", ln=True)
+        # Calculs
+        amount_int = quantity_int * rate_int
+        subtotal_int = amount_int
+        tva_int = int(subtotal_int * taux_tva)
+        total_int = subtotal_int + tva_int
+        balance_due_int = total_int - paid_int
 
-    pdf.cell(100, 10, "Terms: NET 0")
-    pdf.cell(100, 10, f"Due Date: {date_facture.strftime('%d/%m/%Y')}", ln=True)
+        # Format FCFA
+        format_fcfa = lambda x: f"{x:,.0f} FCFA".replace(",", " ")
+        amount = format_fcfa(amount_int)
+        subtotal = format_fcfa(subtotal_int)
+        tva = format_fcfa(tva_int)
+        total = format_fcfa(total_int)
+        balance_due = format_fcfa(balance_due_int)
+        paid_formatted = format_fcfa(paid_int)
 
-    pdf.ln(10)
-    pdf.cell(200, 10, "Bill To:", ln=True)
-    pdf.cell(200, 10, nom_client, ln=True)
-    pdf.cell(200, 10, adresse_client, ln=True)
-    pdf.cell(200, 10, telephone, ln=True)
+        # Générer PDF
+        pdf_path = generate_pdf(
+            path_logo=path_logo,
+            nom_entreprise=nom_entreprise,
+            invoice_no=invoice_no,
+            date=str(date_facture),
+            terms=terms,
+            due_date=str(due_date),
+            bill_to=bill_to,
+            nom_immeuble=nom_immeuble,
+            telephone_immeuble=telephone_immeuble,
+            description=description,
+            quantity=quantity,
+            rate=format_fcfa(rate_int),
+            amount=amount,
+            subtotal=subtotal,
+            taux_tva=f"{float(taux_tva_str):.0f}%",  # Exemple : "18%"
+            tva=tva,
+            total=total,
+            paid=paid_formatted,
+            balance_due=balance_due,
+            output_path="tuto.pdf"
+        )
 
-    pdf.ln(10)
-    pdf.cell(60, 10, "Description")
-    pdf.cell(40, 10, "Quantity")
-    pdf.cell(40, 10, "Rate")
-    pdf.cell(40, 10, "Amount", ln=True)
+        with open(pdf_path, "rb") as f:
+            st.success("✅ Facture générée avec succès.")
+            st.download_button("📥 Télécharger la facture", data=f, file_name="facture.pdf", mime="application/pdf")
 
-    pdf.cell(60, 10, description)
-    pdf.cell(40, 10, str(quantite))
-    pdf.cell(40, 10, f"F CFA {taux:,.0f}")
-    pdf.cell(40, 10, f"F CFA {montant:,.0f}", ln=True)
-
-    pdf.ln(10)
-    pdf.cell(200, 10, f"Subtotal F CFA {montant:,.0f}", ln=True)
-    pdf.cell(200, 10, "TVA 0% F CFA 0", ln=True)
-    pdf.cell(200, 10, f"Total F CFA {montant:,.0f}", ln=True)
-    pdf.cell(200, 10, f"Paid F CFA {montant:,.0f}", ln=True)
-    pdf.cell(200, 10, "BALANCE DUE F CFA 0", ln=True)
-
-    # Sauvegarde et affichage
-    pdf_path = f"facture_{invoice_no}.pdf"
-    pdf.output(pdf_path)
-    
-    imaga_path = "image.png"
-
-    with open(pdf_path, "rb") as f:
-        st.download_button("Télécharger la facture PDF", f, file_name=pdf_path)
+    except Exception as e:
+        st.error(f"❌ Erreur : {e}")
